@@ -1,26 +1,33 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import "./styles.css"
+import { NewTodoForm } from './NewTodoForm'
+import { TodoList } from './TodoList'
 
 // a component can only return one element
 // can use fragment (empty tag) <></> to have multiple elements in a component
 export default function App() {
-  const [newItem, setNewItem] = useState("")
-  // calling function (ex setNewItem) rerenders component
-  // setNewItem("") if you just had this here, it would be an endless loop because each time it is loading it will rerender
-  const [todos, setTodos] = useState([])
-  function handleSubmit(e){
-    e.preventDefault()
+  const [todos, setTodos] = useState(() => {
+    const localValue = localStorage.getItem("ITEMS")
+    if (localValue == null) return []
+    return JSON.parse(localValue)
+  })
 
+  useEffect(() => {
+    // takes function as argument, doesnt return anything
+    // react hooks can't be inside anything
+    localStorage.setItem("ITEMS", JSON.stringify(todos))
+  }, [todos]) // run function every time arguments in this array change
+
+  // props let you pass information to custom components
+  function addTodo(title) {
     // passing in old values of todos using a function
     // set new item vs pass in function
     setTodos(currentTodos => { // on argument is current state
       return [ // return whatever you want new state to be
         ...currentTodos,
-        { id: crypto.randomUUID(), title: newItem, completed: false},
+        { id: crypto.randomUUID(), title, completed: false},
       ]
     })
-
-    setNewItem("") // to clear text entry after adding to todo list
   }
 
   function toggleTodo(id, completed) {
@@ -42,45 +49,12 @@ export default function App() {
 
   return (
     <>
-      <form className="input-form" onSubmit={handleSubmit}>
-        <div className="form-row">
-          <label htmlFor="item">New Item</label>
-          <input 
-            value={newItem} 
-            onChange={e => setNewItem(e.target.value)} // changes newItem (in the input) to whatever the e.target.value is each time e.target.value changes
-            type="text" 
-            id="item" 
-          />
-          {/* id and label links those together */}
-        </div>
-        <button className="btn">Add</button>
-      </form>
+
+      <NewTodoForm onSubmit={addTodo}/> {/* prop on newtodo form called onsubmit and we are giving it this data */}
 
       <h1 className="header">To Do List</h1>
-      <ul className="list">
-        {todos.length === 0 && "Nothing to do!"} {/* short circuiting*/}
-        {todos.map(todoItem => { // map returns array of elements, must have unique id, dont use index because you may want to delete things
-          return(
-            <li key={todoItem.id}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={todoItem.completed}
-                  onChange={e => toggleTodo(todoItem.id, e.target.checked)}
-                />
-                {todoItem.title}
-              </label>
-              <button
-                className="btn delete"
-                onClick={() => deleteTodo(todoItem.id) } // need the function part ()=> vs pass in return value of function
-              >
-                Delete
-              </button>
-            </li>
-          )
-        })  }
 
-      </ul>
+      <TodoList todos={todos} toggleTodo={toggleTodo} deleteTodo={deleteTodo} />
     </>
 
   )
